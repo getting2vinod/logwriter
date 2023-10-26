@@ -1,0 +1,33 @@
+version: '2.0'
+services:
+  rmq:
+    image: 'rabbitmq:3.12'
+    volumes:
+      - './rabbitmq:/etc/rabbitmq'
+      - './mnesia:/var/lib/rabbitmq/mnesia'
+    container_name: rmq
+    hostname: rmq
+    ports:
+      - '5672:5672'
+  web:
+    image: 'python:3.9'
+    volumes:
+      - './code:/code'
+      - './code/logs:/code/logs'
+    container_name: web
+    hostname: web
+    ports:
+      - '80:8081'
+    depends_on:
+      - rmq
+    entrypoint: python /code/main.py
+  writer:
+    image: 'python:3.9'
+    volumes:
+      - './code:/code'
+      - './code/logs:/code/logs'
+    container_name: writer
+    hostname: writer
+    depends_on:
+      - rmq
+    entrypoint: python /code/write.py
