@@ -4,4 +4,3 @@ WORKDIR /app
 COPY ./requirements.txt /app/requirements.txt
 WORKDIR /app
 RUN cd /app && pip install -r requirements.txt
-CMD ["python3"]

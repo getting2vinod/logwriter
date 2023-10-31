@@ -2,6 +2,8 @@ import pika
 from flask import Flask, request
 from waitress import serve
 import json
+from threading import Thread
+
 # Connection parameters
 host = 'rmq'
 credentials = pika.PlainCredentials('guest', 'guest')
@@ -12,35 +14,43 @@ queue_name = 'rpalogs'
 app = Flask(__name__)
 
 
+def push_to_queue(args, remote_addr):
+    try:
+        connection = pika.BlockingConnection(parameters=parameters)
+        channel = connection.channel()
+        # Declare a queue
+        channel.queue_declare(queue=queue_name)
+        # should have been msgsource todo.
+        msgtype = 'dev'
+        if '10.80' in remote_addr:
+            msgtype = 'prod'
+        if 'UAT' in args.get('process'):
+            msgtype = 'qa'
+        payload = {'message': args.get('msg') or "", 'cat': args.get('cat') or "info",
+                   'type': args.get('type') or msgtype,
+                   'process': args.get('process') or "default",
+                   'procid': args.get('procid') or "000",
+                   'server': args.get('server') or remote_addr}
+        payload_json = json.dumps(payload)
+        channel.basic_publish(exchange='', routing_key=queue_name, body=payload_json)
+        connection.close()
+    except Exception as inst:
+        print("Exception: " + str(inst))
+
+
 @app.route('/', methods=['GET'])
 def sendmsg():
-    connection = pika.BlockingConnection(parameters=parameters)
-    channel = connection.channel()
-    # Declare a queue
-    channel.queue_declare(queue=queue_name)
-    # Message to send
+    # Spawn thread to process the data
     args = request.args
-    payload = {}
-    payload['message'] = args.get('msg') or ""
-    payload['cat'] = args.get('cat') or "info"
-    payload['type'] = args.get('type') or "dev"
-    payload['process'] = args.get('process') or "default"
-
-    payload['server'] = args.get('server') or request.remote_addr
-    payload_json = json.dumps(payload)
-    # Send the message to the queue
-    channel.basic_publish(exchange='', routing_key=queue_name, body=payload_json)
-    connection.close()
-    return json.dumps({'success' : True}), 200, {'ContentType' : 'application/json'}
+    t = Thread(target=push_to_queue, args=(args, request.remote_addr,))
+    t.start()
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-# Consume messages from the queue
+@app.route('/ping', methods=['GET'])
+def sendpong():
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+
 
 if __name__ == '__main__':
     serve(app, host='0.0.0.0', port=8081)
-
-
-
-
-# Close the connection
-
