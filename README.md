@@ -12,4 +12,4 @@ Steps:
   - ToDO: Log rotate to be implemented.
 - Writer code has a 30sec delay to enable rmq service load.
   - This can be improved to do service health check in docker compose.
-- 
+- Elastic would require the folder edata to be set to 777 "chmod 777 edata"

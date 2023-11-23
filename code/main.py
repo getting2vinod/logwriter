@@ -3,6 +3,7 @@ from flask import Flask, request
 from waitress import serve
 import json
 from threading import Thread
+import requests
 
 # Connection parameters
 host = 'rmq'
@@ -11,31 +12,70 @@ parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credent
 # Establish a connection to RabbitMQ
 queue_name = 'rpalogs'
 
+# Jenkins configuration. Used for triggering a build. Sharing a common web interface.
+jenkins_url = "http://10.80.5.208:81/"
+
+jenkins_user = "build"
+jenkins_pwd = "$cholastiC&$!@2023"
+token = "thisIstheLongToken"
+
+
 app = Flask(__name__)
 
 
 def push_to_queue(args, remote_addr):
     try:
-        connection = pika.BlockingConnection(parameters=parameters)
-        channel = connection.channel()
-        # Declare a queue
-        channel.queue_declare(queue=queue_name)
-        # should have been msgsource todo.
         msgtype = 'dev'
         if '10.80' in remote_addr:
             msgtype = 'prod'
         if 'UAT' in args.get('process'):
             msgtype = 'qa'
-        payload = {'message': args.get('msg') or "", 'cat': args.get('cat') or "info",
-                   'type': args.get('type') or msgtype,
-                   'process': args.get('process') or "default",
-                   'procid': args.get('procid') or "000",
-                   'server': args.get('server') or remote_addr}
-        payload_json = json.dumps(payload)
-        channel.basic_publish(exchange='', routing_key=queue_name, body=payload_json)
-        connection.close()
+
+        # ignoring dev messages
+        if msgtype != 'dev1':
+            connection = pika.BlockingConnection(parameters=parameters)
+            channel = connection.channel()
+            # Declare a queue
+            channel.queue_declare(queue=queue_name)
+            # should have been msgsource todo.
+
+            payload = {'message': args.get('msg')[:200] or "", 'cat': args.get('cat') or "info",
+                       'type': args.get('type') or msgtype,
+                       'process': args.get('process') or "default",
+                       'procid': args.get('procid') or "000",
+                       'server': args.get('server') or remote_addr}
+            payload_json = json.dumps(payload)
+            channel.basic_publish(exchange='', routing_key=queue_name, body=payload_json)
+            connection.close()
     except Exception as inst:
         print("Exception: " + str(inst))
+
+
+@app.route('/runjob', methods=['GET'])
+def runjob():
+    try:
+        job_name_default = "Uipath Project Build and Deploy"
+        job_name = request.args.get('jobname') or job_name_default
+        jenkins_params = {'token': token}
+        auth = (jenkins_user, jenkins_pwd)
+        crumb_data = requests.get("{0}/crumbIssuer/api/json".format(jenkins_url), auth=auth,
+                                  headers={'content-type': 'application/json'})
+        if str(crumb_data.status_code) == "200":
+            data = requests.get("{0}/job/{1}/build".format(jenkins_url, job_name),
+                                auth=auth, params=jenkins_params,
+                                headers={'content-type': 'application/json',
+                                         'Jenkins-Crumb': crumb_data.json()['crumb']})
+
+            if str(data.status_code) == "201":
+                return json.dumps({'success': "Jenkins job is triggered"}), 200, {'ContentType': 'application/json'}
+            else:
+                return (json.dumps({'failed': "Failed to trigger the Jenkins job"}), 200,
+                        {'ContentType': 'application/json'})
+        else:
+            return json.dumps({'failed': "Could not fetch Jenkins-Crumb"}), 200, {'ContentType': 'application/json'}
+    except Exception as e:
+        return json.dumps({'failed': str(e)}), 200, {'ContentType': 'application/json'}
+
 
 
 @app.route('/', methods=['GET'])
