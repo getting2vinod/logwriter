@@ -4,6 +4,7 @@ from waitress import serve
 import json
 from threading import Thread
 import requests
+import time
 
 # Connection parameters
 host = 'rmq'
@@ -16,8 +17,8 @@ queue_name = 'rpalogs'
 jenkins_url = "http://10.80.5.208:81/"
 
 jenkins_user = "build"
-jenkins_pwd = "$cholastiC&$!@2023"
-token = "thisIstheLongToken"
+jenkins_pwd = ""
+token = ""
 
 
 app = Flask(__name__)
@@ -65,17 +66,33 @@ def runjob():
                                 auth=auth, params=jenkins_params,
                                 headers={'content-type': 'application/json',
                                          'Jenkins-Crumb': crumb_data.json()['crumb']})
-
-            if str(data.status_code) == "201":
-                return json.dumps({'success': "Jenkins job is triggered"}), 200, {'ContentType': 'application/json'}
-            else:
-                return (json.dumps({'failed': "Failed to trigger the Jenkins job"}), 200,
-                        {'ContentType': 'application/json'})
+            return json.dumps({'output': "Job triggered "}), 200, {'ContentType': 'application/json'}
         else:
-            return json.dumps({'failed': "Could not fetch Jenkins-Crumb"}), 200, {'ContentType': 'application/json'}
+            return (json.dumps({'output': "Failed to trigger the Jenkins job"}), 200,
+                    {'ContentType': 'application/json'})
     except Exception as e:
-        return json.dumps({'failed': str(e)}), 200, {'ContentType': 'application/json'}
+        return json.dumps({'output': str(e)}), 200, {'ContentType': 'application/json'}
 
+
+@app.route('/output', methods=['GET'])
+def output():
+    try:
+        job_name_default = "Uipath Project Build and Deploy"
+        job_name = request.args.get('jobname') or job_name_default
+        jenkins_params = {'token': token}
+        auth = (jenkins_user, jenkins_pwd)
+        crumb_data = requests.get("{0}/crumbIssuer/api/json".format(jenkins_url), auth=auth,
+                                  headers={'content-type': 'application/json'})
+        if str(crumb_data.status_code) == "200":
+            resp = requests.get("{0}/job/{1}/lastBuild/consoleText".format(jenkins_url, job_name),
+                                auth=auth, params=jenkins_params,
+                                headers={'content-type': 'application/json',
+                                         'Jenkins-Crumb': crumb_data.json()['crumb']})
+            return json.dumps({'output': resp.text}), 200, {'ContentType': 'application/json'}
+        else:
+            return json.dumps({'output': "Could not fetch Crumb"}), 200, {'ContentType': 'application/json'}
+    except Exception as e:
+        return json.dumps({'output': str(e)}), 200, {'ContentType': 'application/json'}
 
 
 @app.route('/', methods=['GET'])
