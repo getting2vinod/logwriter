@@ -10,8 +10,8 @@ import time
 
 # Connection parameters
 # 'rmq'
-host = '10.124.11.136'
-credentials = pika.PlainCredentials('test', 'test')
+host = 'rmq'
+credentials = pika.PlainCredentials('guest', 'guest')
 # parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
 parameters = pika.ConnectionParameters(host=host, port=80, credentials=credentials)
 # Establish a connection to RabbitMQ
@@ -21,7 +21,7 @@ queue_name = 'rpalogs'
 jenkins_url = "http://"
 hip = ""
 
-with open('code/hostip.txt', 'r') as jf:
+with open('hostip.txt', 'r') as jf:
     hip = jf.read()
     jenkins_url = jenkins_url+hip+":81"
 

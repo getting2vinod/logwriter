@@ -1,20 +1,27 @@
 
+docker network create \
+  --driver overlay \
+  --subnet 172.10.0.0/16 \
+  --opt encrypted \
+  rpalognet
 
 docker service create \
 --name rmq \
---mount type=bind,source="${PWD}"/rabbitmq,destination=/etc/rabbitmq \
---mount type=bind,source="${PWD}"/mnesia,destination=/var/lib/rabbitmq/mnesia \
+--mount type=bind,source="${PWD}"/rabbitmq/rabbitmq,destination=/etc/rabbitmq \
+--mount type=bind,source="${PWD}"/mnesia/mnesia,destination=/var/lib/rabbitmq/mnesia \
 --hostname rmq \
 --publish 5672:5672 \
 --network rpalognet \
 rabbitmq:3.12
+
+sleep 10
 
 docker service create \
 --name writer \
 --mount type=bind,source="${PWD}"/logs,destination=/code/logs \
 --hostname writer \
 --network rpalognet \
-pycode:latest python /code/write.py
+pycode:2.0 python /code/write.py
 
 docker service create \
 --name web \
@@ -23,8 +30,7 @@ docker service create \
 --hostname web \
 --publish 8081:8081 \
 --network rpalognet \
-pycode:latest /bin/bash /code/start.sh
-
+pycode:2.0 /bin/bash /code/start.sh
 
 docker service create \
   --name proxy \
@@ -33,4 +39,4 @@ docker service create \
   --mount type=bind,source="${PWD}"/nginx/logs,destination=/var/log/nginx \
   --network rpalognet \
   -p "80:80" \
-   proxy:latest
+   proxy:2.0
