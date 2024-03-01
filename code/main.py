@@ -1,3 +1,5 @@
+import os
+
 import pika
 from flask import Flask, request
 from waitress import serve
@@ -7,18 +9,25 @@ import requests
 import time
 
 # Connection parameters
-host = 'rmq'
-credentials = pika.PlainCredentials('guest', 'guest')
-parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
+# 'rmq'
+host = '10.124.11.136'
+credentials = pika.PlainCredentials('test', 'test')
+# parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
+parameters = pika.ConnectionParameters(host=host, port=80, credentials=credentials)
 # Establish a connection to RabbitMQ
 queue_name = 'rpalogs'
 
 # Jenkins configuration. Used for triggering a build. Sharing a common web interface.
-jenkins_url = "http://10.80.5.208:81/"
+jenkins_url = "http://"
+hip = ""
+
+with open('code/hostip.txt', 'r') as jf:
+    hip = jf.read()
+    jenkins_url = jenkins_url+hip+":81"
 
 jenkins_user = "build"
-jenkins_pwd = ""
-token = ""
+jenkins_pwd = "$cholastiC&$!@2023"
+token = "thisIstheLongToken"
 
 
 app = Flask(__name__)
@@ -33,7 +42,7 @@ def push_to_queue(args, remote_addr):
             msgtype = 'qa'
 
         # ignoring dev messages
-        if msgtype != 'dev1':
+        if msgtype != 'dev':
             connection = pika.BlockingConnection(parameters=parameters)
             channel = connection.channel()
             # Declare a queue
@@ -106,7 +115,7 @@ def sendmsg():
 
 @app.route('/ping', methods=['GET'])
 def sendpong():
-    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return json.dumps({'success': True, "ip": hip}), 200, {'ContentType': 'application/json'}
 
 
 if __name__ == '__main__':
