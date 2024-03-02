@@ -6,7 +6,7 @@ docker network create \
   rpalognet
 
 docker service create \
---name rmq \
+--name rmq1 \
 --mount type=bind,source="${PWD}"/rabbitmq/rabbitmq,destination=/etc/rabbitmq \
 --mount type=bind,source="${PWD}"/mnesia/mnesia,destination=/var/lib/rabbitmq/mnesia \
 --hostname rmq \
@@ -17,16 +17,17 @@ rabbitmq:3.12
 sleep 10
 
 docker service create \
---name writer \
+--name writer1 \
 --mount type=bind,source="${PWD}"/logs,destination=/code/logs \
 --hostname writer \
 --network rpalognet \
 pycode:2.0 python /code/write.py
 
 docker service create \
---name web \
+--name web1 \
 --replicas 4 \
 --mount type=bind,source="${PWD}"/code/logs,destination=/code/logs \
+--mount type=bind,source="${PWD}"/code,destination=/code \
 --hostname web \
 --publish 8081:8081 \
 --network rpalognet \

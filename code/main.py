@@ -10,10 +10,10 @@ import time
 
 # Connection parameters
 # 'rmq'
-host = 'rmq'
+host = 'rmq1'
 credentials = pika.PlainCredentials('guest', 'guest')
-# parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
-parameters = pika.ConnectionParameters(host=host, port=80, credentials=credentials)
+parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
+# parameters = pika.ConnectionParameters(host=host, port=80, credentials=credentials)
 # Establish a connection to RabbitMQ
 queue_name = 'rpalogs'
 
@@ -36,7 +36,7 @@ app = Flask(__name__)
 def push_to_queue(args, remote_addr):
     try:
         msgtype = 'dev'
-        if '10.80' in remote_addr:
+        if '10.80' in remote_addr or 'AWSRPA' in args.get('msg'):
             msgtype = 'prod'
         if 'UAT' in args.get('process'):
             msgtype = 'qa'
@@ -104,11 +104,15 @@ def output():
         return json.dumps({'output': str(e)}), 200, {'ContentType': 'application/json'}
 
 
+#[UTC 03/02/2024 05:42:00] [564] [rpabotrestock@AWSRPATEMP12] [UAT - Restock Order Processing - Prod] [qa] [Debug] - Found run counter. Reading..
 @app.route('/', methods=['GET'])
 def sendmsg():
     # Spawn thread to process the data
     args = request.args
-    t = Thread(target=push_to_queue, args=(args, request.remote_addr,))
+    # t = Thread(target=push_to_queue, args=(args, request.remote_addr,))
+    remoteip = request.headers.environ['HTTP_X_REAL_IP'] or request.remote_addr
+    t = Thread(target=push_to_queue, args=(args, remoteip,))
+    #'HTTP_X_REAL_IP'
     t.start()
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
