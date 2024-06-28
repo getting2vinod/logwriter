@@ -18,6 +18,9 @@ Version 2.0
 -Build the nginx image
     - cd nginx
     - docker build . -t proxy:2.0
+- On logwriter folder
+  - chmod +x service.sh
+  - Run service.sh
 - The main py will listen on port 8081 , send messages using http://<server>?msg=this is a test
 -   The message classifiers are marked in main.py app route "/"
 - The writer py will monitor rpalogs queue and push messages to logs/debug<0-6>.log file. 
