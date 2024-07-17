@@ -10,7 +10,7 @@ import time
 
 # Connection parameters
 # 'rmq'
-host = 'rmq1'
+host = 'rmq'
 credentials = pika.PlainCredentials('guest', 'guest')
 parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
 # parameters = pika.ConnectionParameters(host=host, port=80, credentials=credentials)
@@ -36,11 +36,13 @@ app = Flask(__name__)
 def push_to_queue(args, remote_addr):
     try:
         msgtype = 'dev'
+        print("Entered...")
         if '10.80' in remote_addr or 'AWSRPA' in args.get('server') or 'AWSRPA' in args.get('msg'):
             msgtype = 'prod'
-        if 'UAT' in args.get('process'):
-            msgtype = 'qa'
-
+        if 'process' in args:
+            if 'UAT' in args.get('process'):
+               msgtype = 'qa'
+        
         # ignoring dev messages
         if msgtype != 'dev':
             connection = pika.BlockingConnection(parameters=parameters)
@@ -110,7 +112,8 @@ def sendmsg():
     # Spawn thread to process the data
     args = request.args
     # t = Thread(target=push_to_queue, args=(args, request.remote_addr,))
-    remoteip = request.headers.environ['HTTP_X_REAL_IP'] or request.remote_addr
+    remoteip = request.remote_addr
+    print(remoteip)
     t = Thread(target=push_to_queue, args=(args, remoteip,))
     #'HTTP_X_REAL_IP'
     t.start()

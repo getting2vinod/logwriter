@@ -6,7 +6,7 @@ import datetime
 from time import sleep
 
 # Connection parameters
-host = 'rmq1'
+host = 'rmq'
 credentials = pika.PlainCredentials('guest', 'guest')
 parameters = pika.ConnectionParameters(host=host, port=5672, credentials=credentials)
 # Establish a connection to RabbitMQ
