@@ -19,6 +19,7 @@ Version 2.0
     - cd nginx
     - docker build . -t proxy:2.0
 - On logwriter folder
+  - create folder logs if not present
   - chmod +x service.sh
   - Run service.sh
 - The main py will listen on port 8081 , send messages using http://<server>?msg=this is a test
@@ -26,7 +27,7 @@ Version 2.0
 - The writer py will monitor rpalogs queue and push messages to logs/debug<0-6>.log file. 
   - Log file is rotated weekly.
 - Install the sumo collector on this box and set the folder from sumo cloud interface
-  - code/logs/*.logs
+  - logs/*.logs
 
 
 
