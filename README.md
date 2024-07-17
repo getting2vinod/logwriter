@@ -9,10 +9,10 @@ Version 2.0
 - Pull the rabbitmq container rabbitmq:3.12
 - Test the rmq container loading, as there could be a delay in initial load.
   - Create a folder named "tmp"
-  - docker run -d --name rmq -v ${PWD}/rabbitmq:/tmp -v ${PWD}/mnesia:/mnesia rabbitmq:3.12
+  - docker run -d --name rmq -v ${PWD}/rabbitmq:/rabconf -v ${PWD}/mnesia:/mnesia rabbitmq:3.12
   - Attach to the container
     - docker exec -it rmq /bin/bash
-    - cp -R /etc/rabbitmq /tmp
+    - cp -R /etc/rabbitmq /rabconf
     - cp -R /var/lib/rabbitmq/mnesia /mnesia/. 
   - docker rm -f rmq 
 -Build the nginx image
